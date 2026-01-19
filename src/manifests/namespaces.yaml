@@ -1,0 +1,32 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spark
+  labels:
+    name: spark
+    app.kubernetes.io/component: compute-engine
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trino
+  labels:
+    name: trino
+    app.kubernetes.io/component: query-engine
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: polaris
+  labels:
+    name: polaris
+    app.kubernetes.io/component: catalog
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: keycloak
+  labels:
+    name: keycloak
+    app.kubernetes.io/component: identity

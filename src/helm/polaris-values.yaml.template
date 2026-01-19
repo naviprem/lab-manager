@@ -1,0 +1,105 @@
+# Apache Polaris Helm Chart Values Template
+# This file is processed at deployment time to inject runtime configuration
+
+# Replica count
+replicaCount: 1
+
+# Image configuration
+image:
+  repository: apache/polaris
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Service Account with IRSA for S3 access
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: {{POLARIS_IRSA_ROLE_ARN}}
+  name: polaris
+
+# Metastore configuration (PostgreSQL)
+metastore:
+  type: postgres
+  conf:
+    jdbcUrl: jdbc:postgresql://{{AURORA_HOST}}:{{AURORA_PORT}}/polaris
+    username: {{AURORA_USER}}
+    password: {{AURORA_PASSWORD}}
+    driverClassName: org.postgresql.Driver
+    maximumPoolSize: 10
+    minimumIdle: 2
+    connectionTimeout: 30000
+
+# Default warehouse configuration
+warehouse:
+  default:
+    type: s3
+    location: s3://{{DATA_BUCKET}}/warehouses
+    properties:
+      catalog-impl: org.apache.polaris.catalog.PolarisCatalog
+      warehouse: default
+      s3.endpoint: https://s3.{{AWS_REGION}}.amazonaws.com
+      s3.region: {{AWS_REGION}}
+
+# OIDC configuration for Keycloak
+oidc:
+  enabled: true
+  issuer: {{KEYCLOAK_URL}}/realms/lab-realm
+  clientId: polaris-client
+  clientSecret: {{POLARIS_CLIENT_SECRET}}
+  usernameClaim: preferred_username
+  groupsClaim: roles
+
+# Service configuration
+service:
+  type: LoadBalancer
+  port: 8181
+  targetPort: 8181
+
+# Resource limits
+resources:
+  requests:
+    memory: "1Gi"
+    cpu: "500m"
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"
+
+# Liveness and readiness probes
+livenessProbe:
+  httpGet:
+    path: /healthcheck
+    port: 8181
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /healthcheck
+    port: 8181
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Environment variables
+env:
+  - name: POLARIS_ENVIRONMENT
+    value: "lab"
+  - name: POLARIS_LOG_LEVEL
+    value: "INFO"
+  - name: AWS_REGION
+    value: "{{AWS_REGION}}"
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8181"
+  prometheus.io/path: "/metrics"

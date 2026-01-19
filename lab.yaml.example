@@ -1,0 +1,53 @@
+# Lab Manager Configuration
+# Copy this file to lab.yaml and customize for your environment.
+
+lab:
+  # Unique name for this lab environment (used in resource naming)
+  name: my-lakehouse-lab
+  # Environment: dev, staging, or prod
+  environment: dev
+
+aws:
+  # AWS region for all resources
+  region: us-east-1
+  # AWS CLI profile (optional, uses default if not specified)
+  # profile: my-aws-profile
+
+# Terraform state backend configuration
+# Variables like ${lab.name} are interpolated from the lab section
+terraform:
+  state_bucket: ${lab.name}-tf-state
+  state_lock_table: ${lab.name}-tf-locks
+
+# Foundation infrastructure settings
+foundation:
+  # VPC CIDR block
+  vpc_cidr: 10.0.0.0/16
+
+  # Aurora PostgreSQL Serverless v2 settings
+  aurora:
+    instance_class: db.t4g.medium
+    min_capacity: 0.5   # Minimum ACUs (scales to zero when idle)
+    max_capacity: 2.0   # Maximum ACUs
+
+  # S3 bucket names for the data lake
+  s3:
+    data_bucket: ${lab.name}-lakehouse-data
+    logs_bucket: ${lab.name}-logs
+
+# EKS configuration (used by 'lab up' in Phase 2)
+# eks:
+#   cluster_version: "1.29"
+#   node_groups:
+#     general:
+#       instance_types: ["m5.large"]
+#       min_size: 1
+#       max_size: 3
+#     spark:
+#       instance_types: ["r5.xlarge"]
+#       min_size: 0
+#       max_size: 5
+#       taints:
+#         - key: spark
+#           value: "true"
+#           effect: NO_SCHEDULE

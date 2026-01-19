@@ -1,0 +1,78 @@
+# Keycloak Helm Chart Values Template
+# This file is processed at deployment time to inject runtime configuration
+
+# PostgreSQL configuration - use external Aurora
+postgresql:
+  enabled: false
+
+externalDatabase:
+  host: {{AURORA_HOST}}
+  port: {{AURORA_PORT}}
+  user: {{AURORA_USER}}
+  password: {{AURORA_PASSWORD}}
+  database: keycloak
+
+# Authentication
+auth:
+  adminUser: admin
+  adminPassword: {{ADMIN_PASSWORD}}
+
+# Service configuration
+service:
+  type: LoadBalancer
+  ports:
+    http: 80
+    https: 443
+
+# Keycloak configuration
+production: false
+proxy: edge
+
+# HTTP settings
+httpRelativePath: "/"
+
+# Resource limits
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "500m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+
+# Health probes
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 300
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Replica count
+replicaCount: 1
+
+# Extra environment variables
+extraEnv:
+  - name: KC_HOSTNAME_STRICT
+    value: "false"
+  - name: KC_HOSTNAME_STRICT_HTTPS
+    value: "false"
+  - name: KC_HTTP_ENABLED
+    value: "true"
+  - name: KC_PROXY
+    value: "edge"
+  - name: KEYCLOAK_PRODUCTION
+    value: "false"
+
+# Logging
+logging:
+  level: INFO
