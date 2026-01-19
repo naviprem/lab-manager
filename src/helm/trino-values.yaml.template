@@ -1,0 +1,131 @@
+# Trino Helm Chart Values Template
+# This file is processed at deployment time to inject runtime configuration
+
+# Image configuration
+image:
+  repository: trinodb/trino
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Server configuration
+server:
+  workers: 2
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 5
+
+# Coordinator configuration
+coordinator:
+  jvm:
+    maxHeapSize: "2G"
+    gcMethod:
+      type: "UseG1GC"
+      g1:
+        heapRegionSize: "32M"
+
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "1000m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Worker configuration
+worker:
+  jvm:
+    maxHeapSize: "2G"
+    gcMethod:
+      type: "UseG1GC"
+      g1:
+        heapRegionSize: "32M"
+
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "1000m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Service Account with IRSA
+serviceAccount:
+  create: true
+  name: trino
+  annotations:
+    eks.amazonaws.com/role-arn: {{TRINO_IRSA_ROLE_ARN}}
+
+# Service configuration
+service:
+  type: LoadBalancer
+  port: 8080
+
+# Catalogs configuration
+additionalCatalogs:
+  # Iceberg catalog connected to Polaris
+  iceberg: |
+    connector.name=iceberg
+    iceberg.catalog.type=rest
+    iceberg.rest-catalog.uri={{POLARIS_URL}}/api/catalog/v1
+
+    # S3 Configuration
+    fs.native-s3.enabled=true
+    s3.endpoint=https://s3.{{AWS_REGION}}.amazonaws.com
+    s3.region={{AWS_REGION}}
+    s3.path-style-access=false
+
+  # TPC-H for testing (optional)
+  tpch: |
+    connector.name=tpch
+    tpch.splits-per-node=4
+
+  # TPC-DS for testing (optional)
+  tpcds: |
+    connector.name=tpcds
+    tpcds.splits-per-node=4
+
+# Authentication configuration
+auth:
+  {}
+  # OIDC authentication (disabled for now, can be enabled when client secret is available)
+  # oidc:
+  #   enabled: true
+  #   discoveryUri: {{KEYCLOAK_URL}}/realms/lab-realm/.well-known/openid-configuration
+  #   clientId: trino-client
+  #   clientSecret: {{TRINO_CLIENT_SECRET}}
+  #   userMappingPattern: "(.*)@.*"
+
+# Additional coordinator config
+additionalConfigProperties:
+  - http-server.authentication.type=PASSWORD
+
+additionalExchangeManagerProperties:
+  - exchange-manager.name=filesystem
+  - exchange.base-directories=/tmp/trino-local-file-system-exchange-manager
+
+# Environment variables
+env:
+  - name: AWS_REGION
+    value: "{{AWS_REGION}}"
+  - name: AWS_DEFAULT_REGION
+    value: "{{AWS_REGION}}"
+
+# Security
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# Logging
+log:
+  trino:
+    level: INFO
